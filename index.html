@@ -670,7 +670,9 @@ footer {
       <p class="contact-lead">
         出演・取材・お仕事に関するお問い合わせは<br>下記のフォームよりご連絡ください。
       </p>
-      <form class="contact-form" id="contactForm" action="https://script.google.com/macros/s/AKfycbxXNyiIHINCvrbe5HM52p7AUO-HfMBA9EA-RlODo-WMoU0MJuRvTO87cbEY1uNIu-_QnQ/exec" method="POST">
+      <form class="contact-form" id="contactForm" name="contact" action="/" method="POST" data-netlify="true" data-netlify-honeypot="bot-field">
+        <input type="hidden" name="form-name" value="contact">
+        <p hidden aria-hidden="true"><label>この欄は入力しないでください: <input name="bot-field" tabindex="-1" autocomplete="off"></label></p>
         <div class="field">
           <label for="cf-email">メールアドレス <span class="req">*</span></label>
           <input type="email" id="cf-email" name="email" required>
@@ -702,7 +704,7 @@ footer {
         </div>
         <p class="form-note">※ 依頼書・企画書等の資料がございましたら、こちらからの返信メールにご添付ください。</p>
         <button type="submit" class="contact-submit">送信する</button>
-        <p class="form-status" id="formStatus"></p>
+        <p class="form-status" id="formStatus" role="status" aria-live="polite"></p>
       </form>
     </div>
   </div>
@@ -785,27 +787,34 @@ links.forEach(link => {
   ptimer = setInterval(()=>pgo(pc+1), 7000);
 })();
 
-// お問い合わせフォーム送信（ページ遷移せず完結）
+// Netlify Forms：送信結果を確認し、成功した場合のみフォームをクリア
 (function(){
   const form = document.getElementById('contactForm');
   const status = document.getElementById('formStatus');
-  if(!form) return;
+  if(!form || !status) return;
+  const submitButton = form.querySelector('button[type="submit"]');
   form.addEventListener('submit', async function(e){
     e.preventDefault();
+    if (submitButton.disabled) return;
+    submitButton.disabled = true;
     status.style.color = 'var(--muted)';
     status.textContent = '送信中...';
     try {
-      await fetch(form.action, {
+      const response = await fetch('/', {
         method: 'POST',
-        mode: 'no-cors',
-        body: new FormData(form)
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(new FormData(form)).toString()
       });
+      if (!response.ok) throw new Error('送信エラー: HTTP ' + response.status);
       form.reset();
       status.style.color = 'var(--text)';
-      status.textContent = 'お問い合わせを送信しました。ありがとうございました。';
+      status.textContent = 'お問い合わせを受け付けました。ありがとうございました。';
     } catch(err){
+      console.error('Contact form submission failed', err);
       status.style.color = 'var(--text)';
-      status.textContent = '送信に失敗しました。通信環境をご確認ください。';
+      status.textContent = '送信できませんでした。入力内容はそのまま残しています。時間をおいて再度お試しください。';
+    } finally {
+      submitButton.disabled = false;
     }
   });
 })();
