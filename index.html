@@ -480,6 +480,30 @@ footer {
   margin-top: 20px;
   min-height: 20px;
 }
+.contact-success {
+  max-width: 460px;
+  margin: 0 auto;
+  padding: 46px 18px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  text-align: center;
+  font-family: 'Noto Serif JP', serif;
+  color: var(--text);
+}
+.contact-success[hidden] { display: none; }
+.contact-success h3 {
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: .12em;
+  margin-bottom: 24px;
+}
+.contact-success p { font-size: 14px; line-height: 2.1; }
+.contact-success .contact-success-note {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 24px;
+}
+.contact-success .contact-submit { margin-top: 30px; }
 
 /* ── ページ切り替え ── */
 .page { display: none; }
@@ -706,6 +730,12 @@ footer {
         <button type="submit" class="contact-submit">送信する</button>
         <p class="form-status" id="formStatus" role="status" aria-live="polite"></p>
       </form>
+      <section class="contact-success" id="contactSuccess" role="status" aria-live="polite" tabindex="-1" hidden>
+        <h3>送信が完了しました</h3>
+        <p>お問い合わせを受け付けました。<br>内容を確認し、担当者より改めてご連絡いたします。</p>
+        <p class="contact-success-note">お送りいただいた内容の控えは、ご入力のメールアドレスへ自動返信いたします。<br>※迷惑メールフォルダもご確認ください。</p>
+        <button type="button" class="contact-submit" id="contactAgain">別のお問い合わせを送る</button>
+      </section>
     </div>
   </div>
 </div>
@@ -787,12 +817,21 @@ links.forEach(link => {
   ptimer = setInterval(()=>pgo(pc+1), 7000);
 })();
 
-// Netlify Forms：送信結果を確認し、成功した場合のみフォームをクリア
+// Netlify Forms：送信成功を確かめてから、完了画面へ切り替える
 (function(){
   const form = document.getElementById('contactForm');
   const status = document.getElementById('formStatus');
-  if(!form || !status) return;
+  const done = document.getElementById('contactSuccess');
+  const again = document.getElementById('contactAgain');
+  if(!form || !status || !done || !again) return;
   const submitButton = form.querySelector('button[type="submit"]');
+  again.addEventListener('click', function(){
+    form.reset();
+    status.textContent = '';
+    done.hidden = true;
+    form.hidden = false;
+    form.querySelector('input[name="email"]').focus();
+  });
   form.addEventListener('submit', async function(e){
     e.preventDefault();
     if (submitButton.disabled) return;
@@ -807,8 +846,10 @@ links.forEach(link => {
       });
       if (!response.ok) throw new Error('送信エラー: HTTP ' + response.status);
       form.reset();
-      status.style.color = 'var(--text)';
-      status.textContent = 'お問い合わせを受け付けました。ありがとうございました。';
+      form.hidden = true;
+      done.hidden = false;
+      status.textContent = '';
+      done.focus();
     } catch(err){
       console.error('Contact form submission failed', err);
       status.style.color = 'var(--text)';
